@@ -834,7 +834,7 @@ def main() -> None:
     if not 1 <= arguments.port <= 65535:
         parser.error("--port must be between 1 and 65535.")
 
-    password = getpass.getpass("Create the shared Eryndor web password: ")
+    password = getpass.getpass("Create DM Eryndor web password: ")
     if not password:
         parser.error("The shared password cannot be empty.")
     confirmation = getpass.getpass("Confirm the shared password: ")
