@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <title>Eryndor Party Page</title>
+  <link rel="stylesheet" href="/party-app.css">
+  <link rel="stylesheet" href="/party.css">
+  <script src="/party.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">The adventurers' record</p>
+      <h1>Eryndor</h1>
+      <p class="subtitle">Party page</p>
+      <p class="page-link"><a href="/bastion">Open the Bastion tracker</a></p>
+    </header>
+
+    <section class="calendar panel" aria-label="Shared campaign calendar">
+      <div class="calendar-heading">
+        <h2 id="calendar-date">Loading campaign calendar…</h2>
+        <p id="calendar-progress"></p>
+        <p id="calendar-alert" class="calendar-alert" hidden></p>
+        <p id="full-moon-alert" class="calendar-alert full-moon" hidden></p>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+
+    <p id="party-message" class="message" role="status" aria-live="polite"></p>
+
+    <section class="panel party-panel" aria-labelledby="notes-title">
+      <h2 id="notes-title">Shared Notes</h2>
+      <form id="note-form">
+        <label for="note-text">Add a note for the party</label>
+        <textarea id="note-text" maxlength="2000" rows="3" required></textarea>
+        <button class="primary" type="submit">Add Note</button>
+      </form>
+      <ul id="notes-list" class="party-list"></ul>
+    </section>
+
+    <section class="panel party-panel" aria-labelledby="inventory-title">
+      <h2 id="inventory-title">Party Inventory</h2>
+      <form id="inventory-form" class="inventory-form">
+        <label for="item-name">Item</label>
+        <input id="item-name" maxlength="120" required>
+        <label for="item-quantity">Quantity</label>
+        <input id="item-quantity" type="number" min="1" max="9999" value="1" required>
+        <button class="primary" type="submit">Add Item</button>
+      </form>
+      <ul id="inventory-list" class="party-list"></ul>
+    </section>
+    <footer>Party notes and inventory are shared with everyone using this page.</footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <title>Bastion Tracker | Eryndor</title>
+  <link rel="stylesheet" href="/bastion.css">
+  <script src="/bastion.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">Shared campaign management</p>
+      <h1>Bastion</h1>
+      <p class="subtitle">Resources, facilities, and weekly turn reference</p>
+      <p class="page-link"><a href="/party">Back to party page</a></p>
+    </header>
+
+    <p id="message" class="message" role="status" aria-live="polite">Loading Bastion…</p>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Persistent tracker</p>
+          <h2 id="bastion-summary">Bastion state</h2>
+        </div>
+        <p id="turn-step-summary" class="step-summary"></p>
+      </div>
+      <div id="resources" class="resources-grid"></div>
+      <p class="hint">Update a resource amount with Save. Resource amounts may exceed storage capacity during a turn; excess is removed at the next Upkeep capacity check.</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Infrastructure</p>
+          <h2>Facility slots</h2>
+        </div>
+        <p id="capacity-summary" class="step-summary"></p>
+      </div>
+      <p class="hint">New facilities do not deduct gold. Record gold separately; these costs are reminders only.</p>
+      <div class="cost-reminders">
+        <span>Cramped: <strong>500 gp</strong></span>
+        <span>Roomy: <strong>1,000 gp</strong></span>
+        <span>Vast: <strong>3,000 gp</strong></span>
+      </div>
+      <form id="facility-form" class="inline-form">
+        <label for="facility-choice">Add facility</label>
+        <select id="facility-choice"></select>
+        <button type="submit">Assign to empty slot</button>
+      </form>
+      <div id="facilities" class="facility-groups"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Permanent, observable expansion</p>
+          <h2>Veil Expansion</h2>
+        </div>
+        <p id="expansion-summary" class="step-summary"></p>
+      </div>
+      <p>Spend 1 Sanctified Residuum to expand. Expansion is irreversible and permanently adds +1 Attacker Die to every Bastion Event Attack.</p>
+      <form id="expansion-form" class="inline-form">
+        <label for="expansion-size">Choose one immediate allocation</label>
+        <select id="expansion-size">
+          <option value="Vast">+1 Vast slot</option>
+          <option value="Roomy">+2 Roomy slots</option>
+          <option value="Cramped">+6 Cramped slots</option>
+        </select>
+        <button type="submit">Expand for 1 Sanctified Residuum</button>
+      </form>
+      <p><strong>Viremont frontier doctrine:</strong> a Bastion is a stabilized area in the Veil, maintained by Hollowed Residuum that fuels an Omen Machine. Facilities may not exceed current capacity; newly gained slots may be assigned immediately or kept in reserve.</p>
+      <p class="hint">Expansion permanently displaces the Veil boundary. Field records associate each expansion with greater Hollow attention: the larger the Bastion becomes, the more aggressively the Hollow behaves nearby.</p>
+    </section>
+
+    <section class="panel turn-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">One week of Bastion management</p>
+          <h2>Bastion Turn</h2>
+        </div>
+        <p id="turn-number" class="step-summary"></p>
+      </div>
+      <ol id="turn-steps" class="turn-steps"></ol>
+      <div id="turn-controls" class="turn-controls"></div>
+      <div id="event-result" class="event-result" hidden></div>
+      <details>
+        <summary>Current turn log</summary>
+        <ul id="turn-log"></ul>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>Bastion resource reference</h2>
+      <div class="reference-grid">
+        <p><strong>Bastion Rations:</strong> Food for defenders; spend 1 during each Upkeep. Missing rations reduce Morale.</p>
+        <p><strong>Munitions:</strong> Spend during an attack to add 1 per Defender to Defender Value.</p>
+        <p><strong>Bastion Defenders:</strong> Roll one Defender Die per Defender during an attack.</p>
+        <p><strong>Materials:</strong> Used to repair one destroyed facility for 1 Material during Upkeep.</p>
+        <p><strong>Gold:</strong> Tracked without a facility storage cap.</p>
+        <p><strong>Morale:</strong> −5 to +5. Natural Morale Decay cannot go below 0; external effects can. Morale modifies production rolls.</p>
+        <p><strong>Hollowed Residuum:</strong> Spend 1 during Upkeep to maintain the Bastion border from the Veil. Missing it lowers Defender Dice one size for that turn.</p>
+        <p><strong>Sanctified Residuum:</strong> Made by converting 20 Hollowed Residuum in a Residuum Crucible; spend 1 to expand the Bastion.</p>
+      </div>
+      <p class="hint">Each operational Roomy Garden, Barracks, Storehouse, and Armory stores up to 10 of its resource. A Vast version stores up to 25 and rolls twice. Root Cellar, Bunk Room, Powder Storage, and Materials Closet each add 5 to their matching capacity. Excess above capacity is removed at the start of the next Bastion Turn.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Facility reference</h2>
+      <p class="hint">Test setup capacity: 6 Cramped, 4 Roomy, and 1 Vast slot. The Garden occupies one of the four Roomy slots.</p>
+      <div id="facility-reference" class="reference-list"></div>
+      <details>
+        <summary>Facility sizes</summary>
+        <p><strong>Cramped:</strong> Auxiliary structures; typically the first destroyed.</p>
+        <p><strong>Roomy:</strong> Core operations and logistics.</p>
+        <p><strong>Vast:</strong> Defining, costly structures with major benefits.</p>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>Bastion Turn steps</h2>
+      <ol class="rules-list">
+        <li><strong>Upkeep:</strong> Spend 1 Ration and 1 Hollowed Residuum. Missing Rations decrease Morale by 1; missing Residuum reduces Defender Dice one size. Repair 1 destroyed facility for 1 Material. Remove resources over their storage capacity.</li>
+        <li><strong>Morale Decay:</strong> Reduce Morale by 1; natural decay cannot take it below 0.</li>
+        <li><strong>Resource Production:</strong> Each operational Garden, Barracks, Storehouse, or Armory rolls 1d6 and adds Morale. Vast producers roll twice separately. Modified result ≤2 produces 0; 3–4 produces 1; 5–6 produces 2; 7+ produces 3. The Coal Furnace can add +1 to each production roll for 1 Material.</li>
+        <li><strong>Facility Operations:</strong> Resolve normal facility functions.</li>
+        <li><strong>Roll Event:</strong> Roll 1d20 on the event table and roll its Hollow attacker dice.</li>
+        <li><strong>Apply Event Effects:</strong> Resolve the defense, resource changes, defender losses, and facility damage.</li>
+        <li><strong>Prepare for Next Week:</strong> Review facility status and prepare the Bastion for the next turn.</li>
+        <li><strong>End Turn:</strong> State carries over to the next week.</li>
+      </ol>
+      <p><strong>Defense:</strong> Attacker Value is the attacker-dice total. Defender Value is Defender Dice + applicable facility bonuses + optional Munitions (1 per Defender for each Munition). X = floor((Attacker Value − Defender Value) / 2). X ≤ 0 is a success; X ≥ 1 is a failure. On failure, lose X Defenders; if X exceeds the Defender count, destroy X − Defender count facilities. Facility destruction prioritizes Walls/Watchtower, then Cramped, Roomy, and Vast.</p>
+      <p class="hint">The tracker uses round-down for X as requested. Choose event resource effects and facility losses before they are applied. The full Bastion tracker is available to anyone with the party-page password.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Bastion Event Table</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>d20</th><th>Event</th><th>Hollow dice</th><th>Effects</th></tr></thead>
+          <tbody id="event-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>Bastion state is saved on the computer hosting this website.</footer>
+  </main>
+</body>
+</html>

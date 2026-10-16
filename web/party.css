@@ -1,0 +1,108 @@
+.party-panel {
+  margin: 14px 0;
+  padding: 20px;
+}
+
+.party-panel h2 {
+  margin: 0 0 14px;
+  color: #dfbd7d;
+  font-size: 1.35rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.party-panel form {
+  display: grid;
+  gap: 9px;
+}
+
+.party-panel label {
+  color: #d4c9b3;
+  font: 600 0.9rem system-ui, sans-serif;
+}
+
+.party-panel textarea,
+.party-panel input {
+  width: 100%;
+  border: 1px solid #766342;
+  border-radius: 6px;
+  padding: 10px;
+  color: #f2e9d7;
+  background: #28251e;
+  font: 1rem/1.5 system-ui, sans-serif;
+}
+
+.party-panel textarea:focus-visible,
+.party-panel input:focus-visible {
+  outline: 2px solid #e0bd78;
+  outline-offset: 2px;
+}
+
+.party-panel button {
+  width: fit-content;
+}
+
+.inventory-form {
+  grid-template-columns: auto minmax(100px, 1fr) auto minmax(70px, 100px) auto;
+  align-items: center;
+}
+
+.party-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.party-list:empty {
+  display: none;
+}
+
+.party-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #494333;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #28251e;
+  font: 0.95rem/1.5 system-ui, sans-serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.party-entry button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 5px 10px;
+}
+
+.inventory-quantity {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+}
+
+.inventory-quantity input {
+  width: 82px;
+  min-height: 36px;
+}
+
+.empty-message {
+  justify-content: center;
+  color: #aaa18f;
+}
+
+@media (max-width: 580px) {
+  .inventory-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .inventory-form button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

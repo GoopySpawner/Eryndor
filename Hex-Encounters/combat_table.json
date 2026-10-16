@@ -1,0 +1,22 @@
+{
+  "1": "A ragged crowd lurches out from between the trees, their clothes snagged with briars and their faces slack with Veil-sick hunger. Encounter: 2d6+2 Husk Commoners (MM p. 77).",
+  "2": "Shapes detach from the roadside shadows, spreading out with the practiced caution of raiders who have learned to strike before prey can flee. Encounter: 2d4+1 Husk Bandits (MM p. 27).",
+  "3": "A scarred captain gives a sharp whistle, and the bandits answer from cover on both sides of the trail. Encounter: 1 Husk Bandit Captain + 2d4 Husk Bandits (MM p. 27).",
+  "4": "Low silhouettes pace the party through the brush, pausing whenever anyone turns to look. Their scouts are already marking the safest approach. Encounter: 1d4 Husk Scouts (MM p. 270).",
+  "5": "A line of battered guards holds a narrow path, shields patched with scraps of wood and metal. They advance without a word when the party draws near. Encounter: 1d4 Husk Guards (MM p. 162).",
+  "6": "Veterans in weather-darkened armor step from the trees in tight formation. Old discipline remains in their movements, though nothing human remains in their eyes. Encounter: 1d4 Husk Veterans (MM p. 320).",
+  "7": "The clank of armor carries through the woods before the knights appear, moving steadily between the trunks with weapons raised. Encounter: 1d4 Husk Knights (MM p. 184).",
+  "8": "A chorus of scraping feet rises from a ditch filled with leaves. The dead pull themselves upright and shamble toward the nearest warmth. Encounter: 2d4+1 Husk Zombies (MM p. 346).",
+  "9": "A wet, eager clicking sounds from the undergrowth. The ghouls crawl over one another as they spill onto the trail, drawn by the scent of the living. Encounter: 2d4+1 Husk Ghouls (MM p. 132).",
+  "10": "Pale figures hang motionless among the low branches until the party passes beneath them. Then they drop with a rasping gasp. Encounter: 1d4 Husk Ghasts (MM p. 130).",
+  "11": "The leaf litter ripples as countless segmented bodies pour from beneath a fallen trunk. Their hooked legs rattle over bark and stone. Encounter: 4d6 Husk Giant Centipedes (MM p. 355).",
+  "12": "A dark cloud rises from a hollow tree, its furious buzzing swelling until the wasps blot out the light. Their nests glisten with Veil-dark resin. Encounter: 3d6 Husk Giant Wasps (MM p. 361).",
+  "13": "Hard shells scrape over the forest floor as beetles emerge from a bed of rotting leaves. Their bodies glow faintly through the gloom. Encounter: 2d6 Carrion Beetles (use Giant Fire Beetle stats; MM p. 357).",
+  "14": "A pulsing stain in the mud bursts apart into a writhing cloud. The swarm veers toward exposed skin, carried on a thin whine. Encounter: 2d4 Veil Leech Swarms (use Swarm of Stirges stats; MM p. 370).",
+  "15": "Drafters in torn work clothes emerge from behind the trees, their old tools repurposed as weapons. Their gaze fixes on the party's supplies. Encounter: 1d4 Husk Drafters (use Cultist stats; MM p. 345).",
+  "16": "A hulking figure blocks the trail, its layered armor scored with deep gouges. It plants its feet and dares the party to come closer. Encounter: 1d4 Husk Tough Boss (MM p. 307).",
+  "17": "The woodland sounds fade one by one. A lone Hollow steps into view, its outline wavering as though the air around it cannot settle. Encounter: 1 Hollow (Homebrew).",
+  "18": "A Hollow's silhouette appears between the trunks, followed by the dragging scrape of the dead gathering behind it. Encounter: 1 Hollow + 2d4 Husk Zombies (MM p. 346 + Homebrew).",
+  "19": "A Hollow advances without haste while armored knights fan out to close every path of retreat. Encounter: 1 Hollow + 1d4 Husk Knights (MM p. 184 + Homebrew).",
+  "20": "A bandit captain signals from a ridge as the rest of the crew closes in through the trees. A Hollow follows in their wake, turning the air cold and still. Encounter: 1 Husk Bandit Captain + 2d4 Husk Bandits + 1 Hollow (MM p. 27 + Homebrew)."
+}

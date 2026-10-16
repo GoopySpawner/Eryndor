@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <title>Eryndor Encounter Generator</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">A field guide to the unknown</p>
+      <h1>Eryndor</h1>
+      <p class="subtitle">Post-Sundering encounter generator</p>
+      <p class="page-link"><a href="/party">Open the party page</a></p>
+    </header>
+
+    <section class="controls panel" aria-label="Encounter controls">
+      <label for="biome">Current biome</label>
+      <select id="biome"></select>
+      <button id="generate" class="primary">Generate Encounter</button>
+      <button id="reset" class="secondary">Reset Encounter History</button>
+    </section>
+
+    <p id="history" class="history" aria-live="polite">Loading encounter history…</p>
+    <section class="calendar panel" aria-label="Campaign calendar">
+      <div class="calendar-heading">
+        <h2 id="calendar-date">Loading campaign calendar…</h2>
+        <p id="calendar-progress"></p>
+        <p id="calendar-alert" class="calendar-alert" role="status" aria-live="polite" hidden></p>
+        <p id="full-moon-alert" class="calendar-alert full-moon" role="status" aria-live="polite" hidden></p>
+      </div>
+      <div class="calendar-controls">
+        <button id="back-time" type="button">Back 1 Segment</button>
+        <button id="advance-time" type="button">Advance 1 Segment</button>
+        <button id="short-rest" type="button" disabled>Short Rest</button>
+        <button id="long-rest" type="button">Long Rest</button>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+
+    <section class="result panel" aria-live="polite">
+      <p id="roll" class="roll">Choose a biome and generate an encounter.</p>
+      <p id="rest" class="rest"></p>
+      <pre id="outcome" class="outcome">Your encounter will appear here.</pre>
+    </section>
+    <footer>Encounter history is shared and saved on the computer hosting this page.</footer>
+  </main>
+</body>
+</html>
