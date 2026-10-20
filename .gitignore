@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+
+Saved-Data/*.json
+Bastion Information/bastion_state.json

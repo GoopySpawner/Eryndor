@@ -60,7 +60,7 @@ function renderCalendar(calendar) {
   calendarAlert.className = restStatus
     ? `calendar-alert ${restStatus.className}`
     : "calendar-alert";
-  const isFullMoon = calendar.day === 26 && calendar.segment === 1;
+  const isFullMoon = calendar.isFullMoon && calendar.segment === 1;
   fullMoonAlert.hidden = !isFullMoon;
   fullMoonAlert.textContent = isFullMoon
     ? "FULL MOON DID THEY PREPARE?"
@@ -87,8 +87,9 @@ function renderCalendar(calendar) {
       if (weekday === 0) {
         cell.classList.add("calendar-monday");
       }
-      if (day === 26) {
+      if (calendar.fullMoonDays.includes(day)) {
         cell.classList.add("calendar-full-moon");
+        cell.title = "Full Moon";
       }
       if (day === calendar.day) {
         cell.setAttribute("aria-current", "date");

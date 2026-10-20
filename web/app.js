@@ -76,7 +76,7 @@ function renderStatus(status, biome = biomeSelect.value) {
   calendarAlert.className = visibleStatus
     ? `calendar-alert ${visibleStatus.className}`
     : "calendar-alert";
-  const isFullMoonRest = calendar.day === 26 && calendar.segment === 1;
+  const isFullMoonRest = calendar.isFullMoon && calendar.segment === 1;
   fullMoonAlert.hidden = !isFullMoonRest;
   fullMoonAlert.textContent = isFullMoonRest
     ? "FULL MOON DID THEY PREPARE?"
@@ -108,7 +108,7 @@ function renderCalendarGrid(calendar) {
         cell.classList.add("calendar-monday");
         cell.title = "Monday — Bastion Turn";
       }
-      if (day === 26) {
+      if (calendar.fullMoonDays.includes(day)) {
         cell.classList.add("calendar-full-moon");
         cell.title = cell.title
           ? `${cell.title}; Full Moon`

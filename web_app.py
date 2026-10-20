@@ -151,6 +151,8 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
                                     "segment",
                                     "segmentName",
                                     "timeSlot",
+                                    "isFullMoon",
+                                    "fullMoonDays",
                                 )
                             },
                             "partyData": party_data.load_party_data(),

@@ -315,7 +315,7 @@ def _validate_state(state: Any) -> dict[str, Any]:
         or not isinstance(state["turnLog"], list)
         or any(not isinstance(entry, str) for entry in state["turnLog"])
         or type(state["defenderDiePenalty"]) is not int
-        or state["defenderDiePenalty"] not in (0, 1)
+        or not 0 <= state["defenderDiePenalty"] <= 4
         or (state["event"] is not None and not isinstance(state["event"], dict))
         or not isinstance(state["productionReport"], list)
         or type(state["recordOfficeUsed"]) is not bool
@@ -340,11 +340,18 @@ def load_state() -> dict[str, Any]:
         ):
             state["resources"]["gold"] = 0
             migrated = True
+        state = _validate_state(state)
+        event = state.get("event")
+        if (
+            state["turnStep"] == "defense_rolled"
+            and isinstance(event, dict)
+            and not event.get("defenderLossChecksPrepared")
+        ):
+            _prepare_defender_loss_checks(state)
+            migrated = True
         if migrated:
-            state = _validate_state(state)
             save_state(state)
-            return state
-        return _validate_state(state)
+        return state
     except FileNotFoundError:
         state = _new_state()
         save_state(state)
@@ -542,19 +549,42 @@ def start_upkeep(
             state["resources"][key] = maximum
             log.append(f"Removed {excess} excess {RESOURCE_LABELS[key]} at the start-of-turn capacity check.")
 
+    missing_upkeep_resource = False
     if state["resources"]["rations"] > 0:
         state["resources"]["rations"] -= 1
         log.append("Upkeep consumed 1 Bastion Ration.")
     else:
+        missing_upkeep_resource = True
         state["resources"]["morale"] = max(-5, state["resources"]["morale"] - 1)
         log.append("No Bastion Ration was available; Morale decreased by 1.")
     if state["resources"]["hollowedResiduum"] > 0:
         state["resources"]["hollowedResiduum"] -= 1
-        state["defenderDiePenalty"] = 0
         log.append("Upkeep consumed 1 Hollowed Residuum.")
     else:
-        state["defenderDiePenalty"] = 1
-        log.append("No Hollowed Residuum was available; Defender Dice are reduced one size this turn.")
+        missing_upkeep_resource = True
+        log.append("No Hollowed Residuum was available for Bastion Upkeep.")
+    if missing_upkeep_resource:
+        previous_die_size = _defender_die_size(state)
+        state["defenderDiePenalty"] = min(4, state["defenderDiePenalty"] + 1)
+        new_die_size = _defender_die_size(state)
+        if new_die_size is None:
+            if previous_die_size is None:
+                log.append(
+                    "Defender Dice are already at flat strength; each Defender "
+                    "continues to count as 1 point with no roll."
+                )
+            else:
+                log.append(
+                    "Defender Dice degraded from "
+                    f"d{previous_die_size} to flat strength: 1 point per Defender "
+                    "with no die roll."
+                )
+        else:
+            log.append(
+                "Bastion lacked at least 1 Ration or 1 Hollowed Residuum; "
+                f"Defender Dice degraded from d{previous_die_size} to d{new_die_size} "
+                "(cumulative)."
+            )
     if repair_facility_id is not None:
         log.append("Repaired 1 destroyed facility for 1 Material.")
 
@@ -747,13 +777,60 @@ def roll_event() -> dict[str, Any]:
     return state
 
 
-def _defender_die_size(state: dict[str, Any]) -> int:
+def _defender_die_size(state: dict[str, Any]) -> Optional[int]:
     sizes = (4, 6, 8, 10, 12)
     size_index = sizes.index(8)
     if any(item["name"] == "Armory" and item["operational"] for item in state["facilities"]):
         size_index += 1
     size_index -= state["defenderDiePenalty"]
-    return sizes[max(0, min(len(sizes) - 1, size_index))]
+    return sizes[size_index] if size_index >= 0 else None
+
+
+def _prepare_defender_loss_checks(
+    state: dict[str, Any],
+) -> None:
+    event = state["event"]
+    defender_losses = min(state["resources"]["defenders"], event["losses"])
+    event["hospitalRolls"] = []
+    event["hospitalReduction"] = 0
+    event["triageTentRoll"] = None
+    event["triageTentChecked"] = False
+    event["triageTentPrevented"] = False
+
+    if not event["success"] and defender_losses > 0 and any(
+        item["name"] == "Hospital" and item["operational"]
+        for item in state["facilities"]
+    ):
+        event["hospitalRolls"] = [
+            random.randint(1, 6),
+            random.randint(1, 6),
+        ]
+        event["hospitalReduction"] = sum(event["hospitalRolls"])
+        defender_losses = max(0, defender_losses - event["hospitalReduction"])
+        state["turnLog"].append(
+            "Hospital reduced Defender losses by "
+            f"{event['hospitalReduction']} (2d6: "
+            f"{event['hospitalRolls'][0]}, {event['hospitalRolls'][1]})."
+        )
+
+    event["defenderLossesBeforeTriage"] = defender_losses
+    if not event["success"] and defender_losses > 0 and any(
+        item["name"] == "Triage Tent" and item["operational"]
+        for item in state["facilities"]
+    ):
+        triage_roll = random.randint(1, 4)
+        event["triageTentRoll"] = triage_roll
+        event["triageTentChecked"] = True
+        if triage_roll == 4:
+            defender_losses -= 1
+            event["triageTentPrevented"] = True
+        state["turnLog"].append(
+            f"Triage Tent check: d4 rolled {triage_roll}; "
+            f"{'prevented 1 Defender loss' if triage_roll == 4 else 'no Defender loss prevented'}."
+        )
+
+    event["defenderLossesApplied"] = defender_losses
+    event["defenderLossChecksPrepared"] = True
 
 
 def roll_defense(
@@ -776,6 +853,9 @@ def roll_defense(
         item["name"] == "Training Ground" and item["operational"]
         for item in state["facilities"]
     )
+    die_size = _defender_die_size(state)
+    if die_size is None and (use_training_ground or reroll_kennels):
+        raise ValueError("Defender Dice are flat values at this size and cannot be rerolled.")
     if use_training_ground and (
         not training_ground
         or state["trainingGroundUsed"]
@@ -794,9 +874,12 @@ def roll_defense(
         raise ValueError("Operational Sightline Ports are required for that reroll.")
 
     event = state["event"]
-    die_size = _defender_die_size(state)
     defender_count = state["resources"]["defenders"]
-    rolls = [random.randint(1, die_size) for _ in range(defender_count)]
+    rolls = (
+        [random.randint(1, die_size) for _ in range(defender_count)]
+        if die_size is not None
+        else []
+    )
     rerolls = []
     reroll_notices = []
     if use_training_ground:
@@ -832,6 +915,8 @@ def roll_defense(
 
     event["defenderRolls"] = rolls
     event["defenderDieSize"] = die_size
+    event["defenderFlatMode"] = die_size is None
+    event["defenderCount"] = defender_count
     lamp_bonus = (
         defender_count // 5
         if any(item["name"] == "Lamp Lines" and item["operational"] for item in state["facilities"])
@@ -850,7 +935,7 @@ def roll_defense(
     event["wallsBonus"] = walls_bonus
     event["munitionSpend"] = munition_spend
     event["defenderValue"] = (
-        sum(rolls)
+        (defender_count if die_size is None else sum(rolls))
         + ally_bonus
         + lamp_bonus
         + walls_bonus
@@ -861,6 +946,7 @@ def roll_defense(
     event["outcomeValue"] = outcome_value
     event["success"] = outcome_value <= 0
     event["losses"] = max(0, outcome_value)
+    _prepare_defender_loss_checks(state)
     state["resources"]["munitions"] -= munition_spend
     salvage_rack = any(
         item["name"] == "Salvage Rack" and item["operational"]
@@ -888,6 +974,8 @@ def resolve_event(
     state = load_state()
     _require_step(state, "defense_rolled")
     event = state["event"]
+    if not event.get("defenderLossChecksPrepared"):
+        _prepare_defender_loss_checks(state)
     choices = resource_choices or []
     destroyed_ids = facility_ids or []
     if not isinstance(choices, list) or any(key not in RESOURCE_KEYS for key in choices):
@@ -931,7 +1019,7 @@ def resolve_event(
     if len(set(choices)) != len(choices) and effect.get("distinctResourceChoices", False):
         raise ValueError("Choose different resource types.")
 
-    defender_losses = min(state["resources"]["defenders"], event["losses"])
+    defender_losses = event["defenderLossesApplied"]
     requested_facility_losses = max(
         0,
         event["losses"] - state["resources"]["defenders"],
@@ -989,27 +1077,6 @@ def resolve_event(
             facilities[facility_id]["operational"] = False
             max_priority_ids.discard(facility_id)
 
-    defense_was_failed = not event["success"]
-    if defense_was_failed and defender_losses > 0 and any(
-        item["name"] == "Hospital" and item["operational"]
-        for item in state["facilities"]
-    ):
-        hospital_reduction = random.randint(1, 6) + random.randint(1, 6)
-        defender_losses = max(0, defender_losses - hospital_reduction)
-        state["turnLog"].append(
-            f"Hospital reduced Defender losses by {hospital_reduction} (2d6)."
-        )
-    if defense_was_failed and defender_losses > 0 and any(
-        item["name"] == "Triage Tent" and item["operational"]
-        for item in state["facilities"]
-    ):
-        triage_roll = random.randint(1, 4)
-        if triage_roll == 4:
-            defender_losses -= 1
-        state["turnLog"].append(
-            f"Triage Tent check: d4 rolled {triage_roll}; "
-            f"{'prevented 1 Defender loss' if triage_roll == 4 else 'no Defender loss prevented'}."
-        )
     state["resources"]["defenders"] -= defender_losses
     for key in choices:
         if effect.get("resourceLoss", 0):

@@ -43,6 +43,25 @@ CALENDAR_SEGMENT_NAMES = (
     "Midday",
     "Evening",
 )
+FULL_MOON_CYCLE_DAYS = 29
+
+
+def _days_since_epoch(year: int, month: int, day: int) -> int:
+    return (
+        (year - 1) * len(CALENDAR_MONTHS) * 28
+        + (month - 1) * 28
+        + day
+        - 1
+    )
+
+
+def _full_moon_days(year: int, month: int) -> list[int]:
+    month_start = _days_since_epoch(year, month, 1)
+    return [
+        day
+        for day in range(1, 29)
+        if (month_start + day - 1) % FULL_MOON_CYCLE_DAYS == 0
+    ]
 
 
 def _new_calendar() -> dict[str, int]:
@@ -125,11 +144,10 @@ def _validate_calendar(calendar: dict[str, int]) -> None:
 
 def get_calendar_display(calendar: dict[str, int]) -> dict[str, Any]:
     """Format the campaign date, weekday, time segment, and encounter total."""
-    days_since_epoch = (
-        (calendar["year"] - 1) * len(CALENDAR_MONTHS) * 28
-        + (calendar["month"] - 1) * 28
-        + calendar["day"]
-        - 1
+    days_since_epoch = _days_since_epoch(
+        calendar["year"],
+        calendar["month"],
+        calendar["day"],
     )
     return {
         "dateLabel": (
@@ -147,6 +165,8 @@ def get_calendar_display(calendar: dict[str, int]) -> dict[str, Any]:
         "timeSlot": CALENDAR_TIME_SLOTS[calendar["segment"] - 1],
         "timeSlots": list(CALENDAR_TIME_SLOTS),
         "totalEncounters": calendar["total_encounters"],
+        "isFullMoon": days_since_epoch % FULL_MOON_CYCLE_DAYS == 0,
+        "fullMoonDays": _full_moon_days(calendar["year"], calendar["month"]),
     }
 
 

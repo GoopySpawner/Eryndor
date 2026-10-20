@@ -1,5 +1,8 @@
 # Eryndor Encounter Generator
 
+## Summary
+I built this Encounter builder to work with my Homebrew D&D campaign named Eryndor. The intention was to make running my own D&D campaign a little more streamlined by automating the random encounter generation that I was previously doing by hand. It is a full-stack, local-network web app for generating encounters, tracking campaign time and rests, sharing party notes and inventory, and managing a campaign Bastion. The browser UI is built with HTML, CSS, and JavaScript, with a Python HTTP server handling application logic and separate DM and party authentication. Campaign state is persisted in JSON files rather than a database, keeping the project lightweight and easy to run locally. It is both a practical tool for a hobby I love and a hands-on project in building a complete application across the front end, server, and persistence layers.
+
 ## Host the web app on your local network
 
 1. Open PowerShell in this folder and run:
@@ -24,7 +27,8 @@ is stored in `Saved-Data/encounter_history.json`; calendar state is stored in
 `Saved-Data/campaign_calendar.json`; party notes and inventory are stored in
 `Saved-Data/party_data.json`. The party calendar is view-only. The calendar's
 initial date is randomly selected from April through June of Year 1, then kept
-across restarts.
+across restarts. Full Moons recur every 29 campaign days, anchored to
+January 1, Year 1.
 
 The `/party` page links to `/bastion`, a shared Bastion tracker accessible with
 the party-page password. Party credentials can view and edit all Bastion state,
@@ -72,8 +76,9 @@ The calendar uses
 seven-day Monday-to-Sunday weeks and 28-day months; Undecimber follows December.
 The calendar highlights **Resolve Bastion Turn** on Mondays at segment 2/4 and
 prompts before generating an encounter then. If a long rest passes a Monday's
-Bastion Turn, it asks whether the turn has been resolved. On the 26th of each
-month at segment 1/4, it displays **FULL MOON DID THEY PREPARE?**
+Bastion Turn, it asks whether the turn has been resolved. Every 29 campaign
+days from January 1, Year 1, it displays **FULL MOON DID THEY PREPARE?** at
+segment 1/4 and marks that date in the calendar.
 Resetting encounter history does not reset the calendar. The existing Tkinter
 app can still be started with `py main.py`. Calendar rules and persistence are
 implemented in the root-level `calendar.py`.

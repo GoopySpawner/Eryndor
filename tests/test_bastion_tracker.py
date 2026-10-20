@@ -108,6 +108,67 @@ class BastionTrackerTests(unittest.TestCase):
         self.assertTrue(any("Removed 1 excess Bastion Rations" in line for line in state["turnLog"]))
         self.assertTrue(any("Removed 5 excess Materials" in line for line in state["turnLog"]))
 
+    def test_missing_upkeep_resources_cumulatively_reduce_defender_dice(self):
+        tracker.add_facility("Armory")
+        expected_sizes = (8, 6, 4, None, None)
+
+        for penalty, expected_size in enumerate(expected_sizes, start=1):
+            with self.subTest(penalty=penalty, expected_size=expected_size):
+                state = tracker.load_state()
+                state["turnStep"] = "ready"
+                tracker.save_state(state)
+
+                state = tracker.start_upkeep(skip_repair=True)["state"]
+
+                self.assertEqual(state["defenderDiePenalty"], min(penalty, 4))
+                self.assertEqual(tracker._defender_die_size(state), expected_size)
+                self.assertEqual(
+                    sum(
+                        "Defender Dice degraded" in line
+                        or "Defender Dice are already at flat strength" in line
+                        for line in state["turnLog"]
+                    ),
+                    1,
+                )
+
+    def test_missing_only_rations_still_degrades_defender_dice(self):
+        tracker.add_facility("Armory")
+        tracker.update_resource("hollowedResiduum", 1)
+
+        state = tracker.start_upkeep(skip_repair=True)["state"]
+
+        self.assertEqual(state["defenderDiePenalty"], 1)
+        self.assertEqual(tracker._defender_die_size(state), 8)
+
+    def test_flat_defender_value_does_not_roll_defender_dice(self):
+        state = tracker.load_state()
+        state["resources"]["defenders"] = 7
+        state["defenderDiePenalty"] = 3
+        state["turnStep"] = "event_rolled"
+        state["event"] = {
+            "d20": 9,
+            "name": tracker.EVENTS[8][0],
+            "attackerDice": [6, 6, 6],
+            "attackerValue": 18,
+            "effect": tracker.EVENTS[8][2],
+            "defenderRolls": None,
+            "defenderValue": None,
+            "munitionSpend": 0,
+            "success": None,
+            "losses": None,
+        }
+        tracker.save_state(state)
+
+        with patch.object(tracker.random, "randint") as die_roll:
+            state = tracker.roll_defense()
+
+        self.assertEqual(die_roll.call_count, 0)
+        self.assertEqual(state["event"]["defenderDieSize"], None)
+        self.assertTrue(state["event"]["defenderFlatMode"])
+        self.assertEqual(state["event"]["defenderRolls"], [])
+        self.assertEqual(state["event"]["defenderCount"], 7)
+        self.assertEqual(state["event"]["defenderValue"], 7)
+
     def test_vast_producer_increases_resource_capacity_to_25(self):
         state = tracker.load_state()
         state["facilities"][0]["size"] = "Vast"
@@ -283,6 +344,163 @@ class BastionTrackerTests(unittest.TestCase):
         self.assertFalse(facilities[walls["id"]]["operational"])
         self.assertFalse(facilities[watchtower["id"]]["operational"])
         self.assertEqual(state["turnStep"], "event_resolved")
+
+    def _resolve_overwhelming_defender_losses_with_triage(self, triage_roll):
+        for name in (
+            "Walls",
+            "Watchtower",
+            "Shrine",
+            "Veil Gauge Resonance Chamber",
+            "Lamp Lines",
+            "Triage Tent",
+            "Armory",
+        ):
+            tracker.add_facility(name)
+        state = tracker.load_state()
+        state["resources"]["defenders"] = 7
+        state["turnStep"] = "defense_rolled"
+        state["event"] = {
+            "d20": 9,
+            "name": tracker.EVENTS[8][0],
+            "success": False,
+            "losses": 15,
+        }
+        tracker.save_state(state)
+        destroy_priority = {
+            "Walls": 0,
+            "Watchtower": 0,
+            "Cramped": 1,
+            "Roomy": 2,
+            "Vast": 3,
+        }
+        facilities = sorted(
+            state["facilities"],
+            key=lambda facility: destroy_priority.get(
+                facility["name"],
+                destroy_priority[facility["size"]],
+            ),
+        )
+        with patch.object(tracker.random, "randint", return_value=triage_roll):
+            return tracker.resolve_event(
+                facility_ids=[facility["id"] for facility in facilities]
+            )
+
+    def test_triage_tent_roll_is_recorded_when_defense_is_rolled(self):
+        tracker.add_facility("Triage Tent")
+        state = tracker.load_state()
+        state["resources"]["defenders"] = 3
+        state["turnStep"] = "event_rolled"
+        state["event"] = {
+            "d20": 7,
+            "name": tracker.EVENTS[6][0],
+            "attackerDice": [3, 4, 2, 4, 4, 4, 2, 6],
+            "attackerValue": 29,
+            "effect": tracker.EVENTS[6][2],
+            "defenderRolls": None,
+            "defenderValue": None,
+            "munitionSpend": 0,
+            "success": None,
+            "losses": None,
+        }
+        tracker.save_state(state)
+
+        with patch.object(
+            tracker.random,
+            "randint",
+            side_effect=[8, 3, 5, 4],
+        ) as die_roll:
+            state = tracker.roll_defense()
+
+        event = state["event"]
+        self.assertEqual(die_roll.call_count, 4)
+        self.assertEqual(event["losses"], 6)
+        self.assertEqual(event["triageTentRoll"], 4)
+        self.assertTrue(event["triageTentPrevented"])
+        self.assertEqual(event["defenderLossesBeforeTriage"], 3)
+        self.assertEqual(event["defenderLossesApplied"], 2)
+
+    def test_triage_tent_does_not_roll_when_no_defenders_are_available(self):
+        tracker.add_facility("Triage Tent")
+        state = tracker.load_state()
+        state["resources"]["defenders"] = 0
+        state["turnStep"] = "event_rolled"
+        state["event"] = {
+            "d20": 11,
+            "name": tracker.EVENTS[10][0],
+            "attackerDice": [4],
+            "attackerValue": 4,
+            "effect": tracker.EVENTS[10][2],
+            "defenderRolls": None,
+            "defenderValue": None,
+            "munitionSpend": 0,
+            "success": None,
+            "losses": None,
+        }
+        tracker.save_state(state)
+
+        with patch.object(tracker.random, "randint", return_value=1) as die_roll:
+            state = tracker.roll_defense()
+
+        self.assertEqual(die_roll.call_count, 0)
+        self.assertFalse(state["event"]["success"])
+        self.assertEqual(state["event"]["losses"], 2)
+        self.assertEqual(state["event"]["defenderCount"], 0)
+        self.assertFalse(state["event"]["triageTentChecked"])
+        self.assertIsNone(state["event"]["triageTentRoll"])
+        self.assertEqual(state["event"]["defenderLossesApplied"], 0)
+
+    def test_existing_unresolved_defense_gets_triage_roll_on_load(self):
+        tracker.add_facility("Triage Tent")
+        state = tracker.load_state()
+        state["resources"]["defenders"] = 3
+        state["turnStep"] = "defense_rolled"
+        state["event"] = {
+            "d20": 7,
+            "name": tracker.EVENTS[6][0],
+            "attackerDice": [3, 4, 2, 4, 4, 4, 2, 6],
+            "attackerValue": 29,
+            "effect": tracker.EVENTS[6][2],
+            "defenderRolls": [8, 3, 5],
+            "defenderValue": 16,
+            "munitionSpend": 0,
+            "success": False,
+            "losses": 6,
+        }
+        tracker.save_state(state)
+
+        with patch.object(tracker.random, "randint", return_value=4) as die_roll:
+            migrated = tracker.load_state()
+
+        self.assertEqual(die_roll.call_count, 1)
+        self.assertEqual(migrated["event"]["triageTentRoll"], 4)
+        self.assertTrue(migrated["event"]["triageTentPrevented"])
+        self.assertEqual(migrated["event"]["defenderLossesApplied"], 2)
+
+    def test_triage_tent_on_four_prevents_exactly_one_of_many_defender_losses(self):
+        state = self._resolve_overwhelming_defender_losses_with_triage(4)
+
+        self.assertEqual(state["resources"]["defenders"], 1)
+        self.assertEqual(state["event"]["defenderLossesBeforeTriage"], 7)
+        self.assertEqual(state["event"]["defenderLossesApplied"], 6)
+        self.assertEqual(state["event"]["triageTentRoll"], 4)
+        self.assertTrue(state["event"]["triageTentPrevented"])
+        self.assertTrue(any(
+            "d4 rolled 4; prevented 1 Defender loss" in line
+            for line in state["turnLog"]
+        ))
+
+    def test_triage_tent_other_roll_does_not_prevent_defender_loss(self):
+        state = self._resolve_overwhelming_defender_losses_with_triage(3)
+
+        self.assertEqual(state["resources"]["defenders"], 0)
+        self.assertEqual(state["event"]["defenderLossesBeforeTriage"], 7)
+        self.assertEqual(state["event"]["defenderLossesApplied"], 7)
+        self.assertEqual(state["event"]["triageTentRoll"], 3)
+        self.assertFalse(state["event"]["triageTentPrevented"])
+        self.assertTrue(any(
+            "d4 rolled 3; no Defender loss prevented" in line
+            for line in state["turnLog"]
+        ))
 
     def test_manual_defender_count_is_retained_and_used_as_defender_dice_count(self):
         tracker.add_facility("Barracks")

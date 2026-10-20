@@ -122,7 +122,7 @@
     <section class="panel">
       <h2>Bastion Turn steps</h2>
       <ol class="rules-list">
-        <li><strong>Upkeep:</strong> Spend 1 Ration and 1 Hollowed Residuum. Missing Rations decrease Morale by 1; missing Residuum reduces Defender Dice one size. Repair 1 destroyed facility for 1 Material. Remove resources over their storage capacity.</li>
+        <li><strong>Upkeep:</strong> Spend 1 Ration and 1 Hollowed Residuum. Missing Rations decrease Morale by 1. If either resource is missing, Defender Dice cumulatively degrade one size at that Upkeep (once per turn, even if both are missing): d10 → d8 → d6 → d4 → flat. At flat, each Defender adds 1 to Defense Value without a roll. Repair 1 destroyed facility for 1 Material. Remove resources over their storage capacity.</li>
         <li><strong>Morale Decay:</strong> Reduce Morale by 1; natural decay cannot take it below 0.</li>
         <li><strong>Resource Production:</strong> Each operational Garden, Barracks, Storehouse, or Armory rolls 1d6 and adds Morale. Vast producers roll twice separately. Modified result ≤2 produces 0; 3–4 produces 1; 5–6 produces 2; 7+ produces 3. The Coal Furnace can add +1 to each production roll for 1 Material.</li>
         <li><strong>Facility Operations:</strong> Resolve normal facility functions.</li>
@@ -131,7 +131,7 @@
         <li><strong>Prepare for Next Week:</strong> Review facility status and prepare the Bastion for the next turn.</li>
         <li><strong>End Turn:</strong> State carries over to the next week.</li>
       </ol>
-      <p><strong>Defense:</strong> Attacker Value is the attacker-dice total. Defender Value is Defender Dice + applicable facility bonuses + optional Munitions (1 per Defender for each Munition). X = floor((Attacker Value − Defender Value) / 2). X ≤ 0 is a success; X ≥ 1 is a failure. On failure, lose X Defenders; if X exceeds the Defender count, destroy X − Defender count facilities. Facility destruction prioritizes Walls/Watchtower, then Cramped, Roomy, and Vast.</p>
+      <p><strong>Defense:</strong> Attacker Value is the attacker-dice total. Defender Value is Defender Dice (or 1 point per Defender at flat strength) + applicable facility bonuses + optional Munitions (1 per Defender for each Munition). X = floor((Attacker Value − Defender Value) / 2). X ≤ 0 is a success; X ≥ 1 is a failure. On failure, lose X Defenders; if X exceeds the Defender count, destroy X − Defender count facilities. Facility destruction prioritizes Walls/Watchtower, then Cramped, Roomy, and Vast.</p>
       <p class="hint">The tracker uses round-down for X as requested. Choose event resource effects and facility losses before they are applied. The full Bastion tracker is available to anyone with the party-page password.</p>
     </section>
 

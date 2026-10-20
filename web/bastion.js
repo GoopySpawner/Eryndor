@@ -340,6 +340,7 @@ function renderTurn(data) {
     renderDefenseResult(data);
     renderEventResolutionForm(data);
   } else if (state.turnStep === "event_resolved") {
+    renderAppliedDefenseResolution(data);
     addActionButton("Prepare for Next Week", () => post("/api/bastion/turn/commands", {}));
   } else if (state.turnStep === "commands_issued") {
     addActionButton("End Bastion Turn", () => {
@@ -416,6 +417,7 @@ function renderProductionReport(data) {
 function renderDefenseControls(data) {
   const state = data.state;
   const event = state.event;
+  const dieSize = defenderDieSize(data);
   const amountLabel = makeElement("label", "", "Munitions to spend (each adds 1 per Defender):");
   const amount = document.createElement("input");
   amount.type = "number";
@@ -425,7 +427,7 @@ function renderDefenseControls(data) {
   amount.id = "munition-spend";
   amountLabel.append(amount);
   turnControls.append(amountLabel);
-  if (hasOperationalFacility(data, "Field Kennels")) {
+  if (dieSize !== null && hasOperationalFacility(data, "Field Kennels")) {
     const label = makeElement("label", "");
     const check = document.createElement("input");
     check.type = "checkbox";
@@ -441,7 +443,7 @@ function renderDefenseControls(data) {
     label.append(check, document.createTextNode(" Use Sightline Ports to reroll one Attacker die showing 6"));
     turnControls.append(label);
   }
-  if (hasOperationalFacility(data, "Training Ground") && !state.trainingGroundUsed) {
+  if (dieSize !== null && hasOperationalFacility(data, "Training Ground") && !state.trainingGroundUsed) {
     const label = makeElement("label", "");
     const check = document.createElement("input");
     check.type = "checkbox";
@@ -449,11 +451,13 @@ function renderDefenseControls(data) {
     check.disabled = state.resources.munitions < 2;
     label.append(check, document.createTextNode(" Use Training Ground (spend 2 Munitions) to reroll all Defender dice showing 1"));
     turnControls.append(label);
-  } else if (state.trainingGroundUsed) {
+  } else if (dieSize !== null && state.trainingGroundUsed) {
     turnControls.append(makeElement("p", "hint", "Training Ground rerolls have already been used this Bastion Turn."));
   }
-  const dieSize = defenderDieSize(data);
-  turnControls.append(makeElement("p", "hint", `Defender Dice: d${dieSize} · ${state.resources.defenders} Bastion Defender(s) · Current expansion adds +${state.expansions} attacker die/dice.`));
+  const defenderDiceDescription = dieSize === null
+    ? `Flat defense: ${state.resources.defenders} Bastion Defender(s) count as ${state.resources.defenders} points; no Defender dice are rolled.`
+    : `Defender Dice: d${dieSize} · ${state.resources.defenders} Bastion Defender(s).`;
+  turnControls.append(makeElement("p", "hint", `${defenderDiceDescription} Current expansion adds +${state.expansions} attacker die/dice.`));
   addActionButton("Roll Defense", async () => {
     const spend = Number(amount.value);
     if (!Number.isSafeInteger(spend) || spend < 0) {
@@ -486,13 +490,18 @@ function defenderDieSize(data) {
   let index = sizes.indexOf(8);
   if (hasOperationalFacility(data, "Armory")) index += 1;
   index -= data.state.defenderDiePenalty;
-  return sizes[Math.max(0, Math.min(sizes.length - 1, index))];
+  return index < 0 ? null : sizes[index];
 }
 
 function renderDefenseResult(data) {
   const event = data.state.event;
   eventResult.hidden = false;
   const outcome = event.success ? "SUCCESS" : "FAILURE";
+  const defenderCount = Number.isInteger(event.defenderCount)
+    ? event.defenderCount
+    : (event.defenderRolls || []).length;
+  const defenderLosses = Math.min(event.losses || 0, defenderCount);
+  const facilityLosses = Math.max(0, (event.losses || 0) - defenderCount);
   const lines = [
     `Event ${event.d20}: ${event.name} — ${outcome}`,
     `Attacker Value ${event.attackerValue}; Defender Value ${event.defenderValue}.`,
@@ -500,15 +509,28 @@ function renderDefenseResult(data) {
     `X = floor((${event.attackerValue} − ${event.defenderValue}) / 2) = ${event.outcomeValue}.`,
     event.success
       ? "The Bastion defense succeeds."
-      : `The defense fails. ${event.losses} Defender(s) would be lost.`,
+      : facilityLosses > 0
+        ? `The defense fails. ${defenderLosses} Defender(s) would be lost and ${facilityLosses} facility/facilities must be destroyed.`
+        : `The defense fails. ${defenderLosses} Defender(s) would be lost.`,
   ];
+  if (!event.success && defenderLosses === 0 && facilityLosses > 0) {
+    lines.push("No Bastion Defenders are available to lose, so the Triage Tent does not roll; the losses apply to facilities.");
+  }
   if (event.defenderRolls) {
     const defenderRollTotal = event.defenderRolls.reduce((total, value) => total + value, 0);
+    const defenderCount = Number.isInteger(event.defenderCount)
+      ? event.defenderCount
+      : event.defenderRolls.length;
+    const munitionSpend = Number.isInteger(event.munitionSpend)
+      ? event.munitionSpend
+      : 0;
     lines.push(
-      `Defender Dice (d${event.defenderDieSize}): ${event.defenderRolls.join(", ") || "none"} = ${defenderRollTotal}.`,
+      event.defenderFlatMode
+        ? `Flat defense: ${defenderCount} Defender(s) count as ${defenderCount} points; no Defender dice were rolled.`
+        : `Defender Dice (d${event.defenderDieSize}): ${event.defenderRolls.join(", ") || "none"} = ${defenderRollTotal}.`,
     );
     lines.push(
-      `Defense modifiers: Walls +${event.wallsBonus}; Lamp Lines +${event.lampLinesBonus}; Munitions +${event.munitionSpend * event.defenderRolls.length}.`,
+      `Defense modifiers: Walls +${event.wallsBonus || 0}; Lamp Lines +${event.lampLinesBonus || 0}; Munitions +${munitionSpend * defenderCount}.`,
     );
   }
   if (event.rerolls && event.rerolls.length) {
@@ -517,6 +539,7 @@ function renderDefenseResult(data) {
   if (event.rerollNotices && event.rerollNotices.length) {
     lines.push(...event.rerollNotices);
   }
+  lines.push(...defenderLossCheckLines(event));
   lines.push(`Event effect: ${event.effect}`);
   eventResult.append(
     makeElement("h3", "", `Bastion Event Table ${event.d20}: ${event.name} — ${outcome}`),
@@ -524,6 +547,39 @@ function renderDefenseResult(data) {
   for (const line of lines.slice(1)) {
     eventResult.append(makeElement("p", "", line));
   }
+}
+
+function renderAppliedDefenseResolution(data) {
+  const event = data.state.event;
+  const resolutionLines = defenderLossCheckLines(event);
+  if (!resolutionLines.length) return;
+  eventResult.hidden = false;
+  eventResult.append(makeElement("h3", "", "Defender Loss Resolution"));
+  for (const line of resolutionLines) {
+    eventResult.append(makeElement("p", "", line));
+  }
+}
+
+function defenderLossCheckLines(event) {
+  const lines = [];
+  if (event.hospitalRolls && event.hospitalRolls.length) {
+    lines.push(
+      `Hospital 2d6: ${event.hospitalRolls.join(", ")} = ${event.hospitalReduction}; Defender losses reduced to ${event.defenderLossesBeforeTriage} before Triage Tent.`,
+    );
+  }
+  if (event.triageTentChecked && Number.isInteger(event.triageTentRoll)) {
+    lines.push(
+      `Triage Tent d4: ${event.triageTentRoll} — ${
+        event.triageTentPrevented
+          ? "success; prevented 1 Defender loss."
+          : "no effect; no Defender loss prevented."
+      }`,
+    );
+    lines.push(
+      `Defender losses: ${event.defenderLossesBeforeTriage} before Triage Tent, ${event.defenderLossesApplied} applied.`,
+    );
+  }
+  return lines;
 }
 
 function eventChoiceCount(data) {
