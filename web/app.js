@@ -2,12 +2,15 @@ const biomeSelect = document.querySelector("#biome");
 const generateButton = document.querySelector("#generate");
 const shortRestButton = document.querySelector("#short-rest");
 const resetButton = document.querySelector("#reset");
+const resetTableSelect = document.querySelector("#reset-table");
+const resetTableButton = document.querySelector("#reset-selected-table");
 const backTimeButton = document.querySelector("#back-time");
 const advanceTimeButton = document.querySelector("#advance-time");
 const longRestButton = document.querySelector("#long-rest");
 const historyLabel = document.querySelector("#history");
 const calendarDate = document.querySelector("#calendar-date");
 const calendarProgress = document.querySelector("#calendar-progress");
+const lunarPhase = document.querySelector("#lunar-phase");
 const calendarAlert = document.querySelector("#calendar-alert");
 const fullMoonAlert = document.querySelector("#full-moon-alert");
 const calendarGrid = document.querySelector("#calendar-grid");
@@ -44,6 +47,23 @@ function showMessage(message = "") {
 
 function renderStatus(status, biome = biomeSelect.value) {
   const tables = status.tableCounts;
+  const selectedTable = resetTableSelect.value;
+  resetTableSelect.replaceChildren();
+  for (const tableName of Object.keys(tables).filter(
+    (name) => name !== "Combat",
+  )) {
+    const option = document.createElement("option");
+    option.value = tableName;
+    option.textContent = tableName;
+    resetTableSelect.append(option);
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(tables, selectedTable)
+    && selectedTable !== "Combat"
+  ) {
+    resetTableSelect.value = selectedTable;
+  }
+  resetTableButton.disabled = resetTableSelect.options.length === 0;
   const available =
     typeof status.availableTables === "number" ? status.availableTables : 0;
   const total = typeof status.totalTables === "number" ? status.totalTables : 0;
@@ -63,6 +83,12 @@ function renderStatus(status, biome = biomeSelect.value) {
   calendarDate.textContent = `${calendar.weekday}, ${calendar.dateLabel}`;
   calendarProgress.textContent =
     `${calendar.segmentName} | ${calendar.timeSlot}`;
+  const isLateNight = calendar.segment === 1;
+  lunarPhase.hidden = !isLateNight;
+  lunarPhase.textContent = isLateNight
+    ? `${calendar.moonPhase} · ${calendar.moonIllumination}% illumination`
+      + (calendar.isMoonDim ? " · Light Level is Dim due to the Moon" : "")
+    : "";
   const restStatus = {
     1: { text: "Time to Rest", className: "rest" },
     2: isBastionTurn
@@ -166,6 +192,7 @@ async function changeTime(direction) {
     generateButton,
     shortRestButton,
     resetButton,
+    resetTableButton,
     backTimeButton,
     advanceTimeButton,
     longRestButton,
@@ -186,6 +213,7 @@ async function changeTime(direction) {
       generateButton,
       shortRestButton,
       resetButton,
+      resetTableButton,
       backTimeButton,
       advanceTimeButton,
       longRestButton,
@@ -203,6 +231,7 @@ shortRestButton.addEventListener("click", async () => {
     generateButton,
     shortRestButton,
     resetButton,
+    resetTableButton,
     backTimeButton,
     advanceTimeButton,
     longRestButton,
@@ -225,6 +254,7 @@ shortRestButton.addEventListener("click", async () => {
       generateButton,
       shortRestButton,
       resetButton,
+      resetTableButton,
       backTimeButton,
       advanceTimeButton,
       longRestButton,
@@ -240,6 +270,7 @@ longRestButton.addEventListener("click", async () => {
     generateButton,
     shortRestButton,
     resetButton,
+    resetTableButton,
     backTimeButton,
     advanceTimeButton,
     longRestButton,
@@ -270,6 +301,7 @@ longRestButton.addEventListener("click", async () => {
       generateButton,
       shortRestButton,
       resetButton,
+      resetTableButton,
       backTimeButton,
       advanceTimeButton,
       longRestButton,
@@ -300,6 +332,7 @@ generateButton.addEventListener("click", async () => {
     generateButton,
     shortRestButton,
     resetButton,
+    resetTableButton,
     backTimeButton,
     advanceTimeButton,
     longRestButton,
@@ -323,6 +356,7 @@ generateButton.addEventListener("click", async () => {
       generateButton,
       shortRestButton,
       resetButton,
+      resetTableButton,
       backTimeButton,
       advanceTimeButton,
       longRestButton,
@@ -344,6 +378,7 @@ resetButton.addEventListener("click", async () => {
     generateButton,
     shortRestButton,
     resetButton,
+    resetTableButton,
     backTimeButton,
     advanceTimeButton,
     longRestButton,
@@ -364,7 +399,54 @@ resetButton.addEventListener("click", async () => {
   } finally {
     for (const button of [
       generateButton,
+      shortRestButton,
       resetButton,
+      resetTableButton,
+      backTimeButton,
+      advanceTimeButton,
+      longRestButton,
+    ]) {
+      button.disabled = false;
+    }
+  }
+});
+
+resetTableButton.addEventListener("click", async () => {
+  const tableName = resetTableSelect.value;
+  if (!tableName) return;
+  if (
+    !window.confirm(
+      `Clear the seen results for ${tableName} and restore that table to the pool?`,
+    )
+  ) {
+    return;
+  }
+  for (const button of [
+    generateButton,
+    shortRestButton,
+    resetButton,
+    resetTableButton,
+    backTimeButton,
+    advanceTimeButton,
+    longRestButton,
+  ]) {
+    button.disabled = true;
+  }
+  try {
+    const data = await request("/api/reset-table", {
+      tableName,
+      biome: biomeSelect.value,
+    });
+    renderStatus(data.status, biomeSelect.value);
+    showMessage(data.message);
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    for (const button of [
+      generateButton,
+      shortRestButton,
+      resetButton,
+      resetTableButton,
       backTimeButton,
       advanceTimeButton,
       longRestButton,
@@ -390,6 +472,7 @@ async function initialize() {
     generateButton.disabled = true;
     shortRestButton.disabled = true;
     resetButton.disabled = true;
+    resetTableButton.disabled = true;
     backTimeButton.disabled = true;
     advanceTimeButton.disabled = true;
     longRestButton.disabled = true;

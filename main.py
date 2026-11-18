@@ -648,6 +648,63 @@ def main():
     )
     reset_button.pack(side=tk.LEFT, padx=5)
 
+    reset_table_frame = tk.Frame(window)
+    reset_table_frame.pack(padx=20, pady=(0, 10))
+    tk.Label(reset_table_frame, text="Reset one table:").pack(
+        side=tk.LEFT,
+        padx=(0, 8),
+    )
+    reset_table_name = tk.StringVar()
+    reset_table_selector = Combobox(
+        reset_table_frame,
+        textvariable=reset_table_name,
+        values=tuple(
+            name for name in encounters.TABLES if name != "Combat"
+        ),
+        state="readonly",
+        width=24,
+    )
+    reset_table_selector.pack(side=tk.LEFT, padx=5)
+    reset_table_selector.current(0)
+
+    def reset_selected_table():
+        nonlocal seen_encounters, excluded_tables
+        table_name = reset_table_name.get()
+        if not table_name:
+            return
+        if not messagebox.askyesno(
+            "Reset Encounter Table",
+            f"Clear the seen results for {table_name} and restore that table "
+            "to the pool?",
+            parent=window,
+        ):
+            return
+        try:
+            updated_seen, updated_excluded = encounters.reset_table_history(
+                table_name,
+                seen_encounters,
+                excluded_tables,
+            )
+            encounters.save_history(updated_seen, updated_excluded)
+        except (OSError, ValueError) as error:
+            messagebox.showerror(
+                "Unable to Reset Encounter Table",
+                f"{table_name} history could not be reset:\n{error}",
+                parent=window,
+            )
+            return
+
+        seen_encounters = updated_seen
+        excluded_tables = updated_excluded
+        update_history_label(table_name)
+        result_label.config(text=f"{table_name} encounter history reset.")
+
+    tk.Button(
+        reset_table_frame,
+        text="Reset Selected Table",
+        command=reset_selected_table,
+    ).pack(side=tk.LEFT, padx=5)
+
     window.mainloop()
 
 if __name__ == "__main__":

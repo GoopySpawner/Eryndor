@@ -13,6 +13,7 @@ from typing import Any, Optional
 from urllib.parse import parse_qs, urlsplit
 
 import party_data
+import hex_map
 
 
 ROOT = Path(__file__).parent
@@ -79,10 +80,22 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
         )
 
     def _authorized(self, path: str) -> bool:
+        is_shared_map_notes_route = path == "/api/map/notes"
         is_party_route = (
             path in ("/party", "/party/", "/party.html")
             or path.startswith(("/party.", "/party-", "/party/", "/api/party/"))
             or path == "/api/party"
+            or path in (
+                "/map",
+                "/map/",
+                "/map.html",
+                "/map.css",
+                "/map.js",
+                "/api/map",
+                "/api/map/move",
+                "/api/map/place-of-interest",
+                "/api/map/notes",
+            )
             or path in ("/bastion", "/bastion/", "/bastion.css", "/bastion.js")
             or path == "/api/bastion"
             or path.startswith("/api/bastion/")
@@ -90,7 +103,13 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
         expected_password = (
             self.server.party_password if is_party_route else self.server.password
         )
-        realm = "Eryndor Party Page" if is_party_route else "Eryndor DM Tools"
+        realm = (
+            "Eryndor Map Notes"
+            if is_shared_map_notes_route
+            else "Eryndor Party Page"
+            if is_party_route
+            else "Eryndor DM Tools"
+        )
         authorization = self.headers.get("Authorization", "")
         scheme, separator, encoded_credentials = authorization.partition(" ")
         if not separator or scheme.lower() != "basic":
@@ -107,11 +126,13 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
             return False
 
         username, separator, password = credentials.partition(":")
-        if (
-            not separator
-            or username != "eryndor"
-            or not hmac.compare_digest(password, expected_password)
-        ):
+        password_matches = hmac.compare_digest(password, expected_password)
+        if is_shared_map_notes_route:
+            password_matches = (
+                password_matches
+                or hmac.compare_digest(password, self.server.password)
+            )
+        if not separator or username != "eryndor" or not password_matches:
             self._request_authentication(realm)
             return False
         return True
@@ -165,6 +186,23 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
                 )
             return
 
+        if path in ("/api/map", "/api/map/admin"):
+            try:
+                with self.server.state_lock:
+                    self._send_json(
+                        {
+                            "map": hex_map.load_map(),
+                            "biomes": hex_map.BIOMES,
+                            "placeTypes": hex_map.PLACE_TYPES,
+                        }
+                    )
+            except (OSError, ValueError) as error:
+                self._send_json(
+                    {"error": f"Campaign map could not be loaded: {error}"},
+                    500,
+                )
+            return
+
         if path == "/api/bastion":
             try:
                 with self.server.state_lock:
@@ -206,6 +244,15 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
             "/party-app.css": ("app.css", "text/css; charset=utf-8"),
             "/party.css": ("party.css", "text/css; charset=utf-8"),
             "/party.js": ("party.js", "text/javascript; charset=utf-8"),
+            "/map": ("map.html", "text/html; charset=utf-8"),
+            "/map/": ("map.html", "text/html; charset=utf-8"),
+            "/map.html": ("map.html", "text/html; charset=utf-8"),
+            "/map.css": ("map.css", "text/css; charset=utf-8"),
+            "/map.js": ("map.js", "text/javascript; charset=utf-8"),
+            "/map-admin": ("map-admin.html", "text/html; charset=utf-8"),
+            "/map-admin/": ("map-admin.html", "text/html; charset=utf-8"),
+            "/map-admin.css": ("map.css", "text/css; charset=utf-8"),
+            "/map-admin.js": ("map.js", "text/javascript; charset=utf-8"),
             "/bastion": ("bastion.html", "text/html; charset=utf-8"),
             "/bastion/": ("bastion.html", "text/html; charset=utf-8"),
             "/bastion.css": ("bastion.css", "text/css; charset=utf-8"),
@@ -240,7 +287,12 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
         except ValueError:
             self._send_json({"error": "Invalid request length."}, 400)
             return
-        if not 0 < content_length <= 4096:
+        max_content_length = (
+            256 * 1024
+            if path == "/api/map/edit"
+            else 4096
+        )
+        if not 0 < content_length <= max_content_length:
             self._send_json({"error": "Invalid request length."}, 400)
             return
 
@@ -251,6 +303,123 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
             return
         if not isinstance(request_data, dict):
             self._send_json({"error": "Invalid request data."}, 400)
+            return
+
+        if path == "/api/map/move":
+            try:
+                with self.server.state_lock:
+                    data = hex_map.move_current_location(
+                        request_data.get("column"),
+                        request_data.get("row"),
+                    )
+                    self._send_json({
+                        "message": "Current Location moved.",
+                        "map": data,
+                    })
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except OSError as error:
+                self._send_json(
+                    {"error": f"Campaign map could not be saved: {error}"},
+                    500,
+                )
+            return
+
+        if path == "/api/map/place-of-interest":
+            try:
+                with self.server.state_lock:
+                    data = hex_map.add_place(
+                        request_data.get("column"),
+                        request_data.get("row"),
+                        "place-of-interest",
+                        request_data.get("name"),
+                    )
+                    self._send_json({
+                        "message": "Place of Interest added to the map.",
+                        "map": data,
+                    })
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except OSError as error:
+                self._send_json(
+                    {"error": f"Campaign map could not be saved: {error}"},
+                    500,
+                )
+            return
+
+        if path == "/api/map/notes":
+            try:
+                with self.server.state_lock:
+                    data = hex_map.set_hex_note(
+                        request_data.get("column"),
+                        request_data.get("row"),
+                        request_data.get("text"),
+                    )
+                    self._send_json({
+                        "message": "Hex note saved.",
+                        "map": data,
+                    })
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except OSError as error:
+                self._send_json(
+                    {"error": f"Campaign map could not be saved: {error}"},
+                    500,
+                )
+            return
+
+        if path == "/api/map/edit":
+            try:
+                with self.server.state_lock:
+                    action = request_data.get("action")
+                    if action == "set-biome":
+                        data = hex_map.set_biome(
+                            request_data.get("column"),
+                            request_data.get("row"),
+                            request_data.get("biome"),
+                        )
+                        message = "Hex biome updated."
+                    elif action == "paint-biomes":
+                        changed_cells = hex_map.paint_biomes(
+                            request_data.get("cells"),
+                            request_data.get("biome"),
+                        )
+                        self._send_json({
+                            "message": (
+                                f"Painted {changed_cells} "
+                                f"{hex_map.BIOMES[request_data['biome']]['label']} hexes."
+                            ),
+                        })
+                        return
+                    elif action == "add-place":
+                        data = hex_map.add_place(
+                            request_data.get("column"),
+                            request_data.get("row"),
+                            request_data.get("type"),
+                            request_data.get("name"),
+                        )
+                        message = "Place added to the map."
+                    elif action == "delete-place":
+                        data = hex_map.delete_place(request_data.get("id"))
+                        message = "Place removed from the map."
+                    else:
+                        self._send_json({"error": "Select a valid map edit."}, 400)
+                        return
+                    self._send_json(
+                        {
+                            "message": message,
+                            "map": data,
+                            "biomes": hex_map.BIOMES,
+                            "placeTypes": hex_map.PLACE_TYPES,
+                        }
+                    )
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except OSError as error:
+                self._send_json(
+                    {"error": f"Campaign map could not be saved: {error}"},
+                    500,
+                )
             return
 
         if path.startswith("/api/party/"):
@@ -343,6 +512,36 @@ class EncounterRequestHandler(BaseHTTPRequestHandler):
             except (OSError, ValueError) as error:
                 self._send_json(
                     {"error": f"Encounter history could not be reset: {error}"},
+                    500,
+                )
+            return
+
+        if path == "/api/reset-table":
+            table_name = request_data.get("tableName")
+            biome = request_data.get("biome", encounters.BIOMES[0])
+            if not isinstance(biome, str) or biome not in encounters.BIOMES:
+                self._send_json({"error": "Select a valid biome."}, 400)
+                return
+            try:
+                with self.server.state_lock:
+                    seen, excluded = encounters.load_history()
+                    seen, excluded = encounters.reset_table_history(
+                        table_name,
+                        seen,
+                        excluded,
+                    )
+                    encounters.save_history(seen, excluded)
+                    self._send_json(
+                        {
+                            "message": f"{table_name} encounter history reset.",
+                            "status": _status_payload(seen, excluded, biome),
+                        }
+                    )
+            except ValueError as error:
+                self._send_json({"error": str(error)}, 400)
+            except OSError as error:
+                self._send_json(
+                    {"error": f"{table_name} history could not be reset: {error}"},
                     500,
                 )
             return

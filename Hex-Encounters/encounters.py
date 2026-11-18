@@ -33,10 +33,10 @@ def _load_table(filename: str, result_count: int = 20) -> dict[int, str]:
 
 TABLES = {
     "Combat": _load_table("combat_table.json"),
-    "Choice": _load_table("choice_table.json"),
+    "Choice": _load_table("choice_table.json", 100),
     "Woodlands Biome": _load_table("woodlands_biome_encounters.json"),
     "Wetlands Biome": _load_table("wetlands_biome_encounters.json"),
-    "Environment Outcomes": _load_table("environment_outcomes.json"),
+    "Environment Outcomes": _load_table("environment_outcomes.json", 100),
     "Environmental Vignettes": _load_table("environmental_vignettes.json", 100),
 }
 
@@ -282,6 +282,29 @@ def roll_luxury_goods_reward(table_name: str, result: int) -> Optional[str]:
 def empty_history() -> tuple[dict[str, set[int]], set[str]]:
     """Return empty per-table encounter history and excluded tables."""
     return {table_name: set() for table_name in TABLES}, set()
+
+
+def reset_table_history(
+    table_name: str,
+    seen: dict[str, set[int]],
+    excluded_tables: set[str],
+) -> tuple[dict[str, set[int]], set[str]]:
+    """Clear one tracked table's seen results and restore it to the pool."""
+    if (
+        not isinstance(table_name, str)
+        or table_name not in TABLES
+        or table_name == "Combat"
+    ):
+        raise ValueError("Select a valid tracked encounter table.")
+
+    updated_seen = {
+        name: set(results)
+        for name, results in seen.items()
+    }
+    updated_seen[table_name].clear()
+    updated_excluded = set(excluded_tables)
+    updated_excluded.discard(table_name)
+    return updated_seen, updated_excluded
 
 
 def load_history() -> tuple[dict[str, set[int]], set[str]]:

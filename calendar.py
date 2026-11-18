@@ -1,4 +1,5 @@
 import json
+from math import cos, pi
 import random
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,16 @@ CALENDAR_SEGMENT_NAMES = (
     "Evening",
 )
 FULL_MOON_CYCLE_DAYS = 29
+LUNAR_PHASES = (
+    "Full Moon",
+    "Waning Gibbous",
+    "Third Quarter",
+    "Waning Crescent",
+    "New Moon",
+    "Waxing Crescent",
+    "First Quarter",
+    "Waxing Gibbous",
+)
 
 
 def _days_since_epoch(year: int, month: int, day: int) -> int:
@@ -149,6 +160,30 @@ def get_calendar_display(calendar: dict[str, int]) -> dict[str, Any]:
         calendar["month"],
         calendar["day"],
     )
+    lunar_cycle_day = days_since_epoch % FULL_MOON_CYCLE_DAYS
+    if lunar_cycle_day == 0:
+        moon_phase = "Full Moon"
+    elif lunar_cycle_day < 7:
+        moon_phase = "Waning Gibbous"
+    elif lunar_cycle_day == 7:
+        moon_phase = "Third Quarter"
+    elif lunar_cycle_day < 14:
+        moon_phase = "Waning Crescent"
+    elif lunar_cycle_day == 14:
+        moon_phase = "New Moon"
+    elif lunar_cycle_day < 22:
+        moon_phase = "Waxing Crescent"
+    elif lunar_cycle_day == 22:
+        moon_phase = "First Quarter"
+    else:
+        moon_phase = "Waxing Gibbous"
+    illumination = round(
+        50
+        * (
+            1
+            + cos(2 * pi * lunar_cycle_day / FULL_MOON_CYCLE_DAYS)
+        ),
+    )
     return {
         "dateLabel": (
             f"{CALENDAR_MONTHS[calendar['month'] - 1]} {calendar['day']}, "
@@ -165,7 +200,13 @@ def get_calendar_display(calendar: dict[str, int]) -> dict[str, Any]:
         "timeSlot": CALENDAR_TIME_SLOTS[calendar["segment"] - 1],
         "timeSlots": list(CALENDAR_TIME_SLOTS),
         "totalEncounters": calendar["total_encounters"],
-        "isFullMoon": days_since_epoch % FULL_MOON_CYCLE_DAYS == 0,
+        "isFullMoon": lunar_cycle_day == 0,
+        "moonPhase": moon_phase,
+        "moonIllumination": illumination,
+        "isMoonDim": min(
+            lunar_cycle_day,
+            FULL_MOON_CYCLE_DAYS - lunar_cycle_day,
+        ) <= 2,
         "fullMoonDays": _full_moon_days(calendar["year"], calendar["month"]),
     }
 

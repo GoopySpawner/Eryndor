@@ -14,7 +14,7 @@
       <p class="eyebrow">A field guide to the unknown</p>
       <h1>Eryndor</h1>
       <p class="subtitle">Post-Sundering encounter generator</p>
-      <p class="page-link"><a href="/party">Open the party page</a></p>
+      <p class="page-link"><a href="/party">Open the party page</a> · <a href="/map-admin">Edit the campaign map</a></p>
     </header>
 
     <section class="controls panel" aria-label="Encounter controls">
@@ -22,6 +22,9 @@
       <select id="biome"></select>
       <button id="generate" class="primary">Generate Encounter</button>
       <button id="reset" class="secondary">Reset Encounter History</button>
+      <label for="reset-table">Reset one table:</label>
+      <select id="reset-table" aria-label="Encounter table to reset"></select>
+      <button id="reset-selected-table" class="secondary" disabled>Reset Selected Table</button>
     </section>
 
     <p id="history" class="history" aria-live="polite">Loading encounter history…</p>
@@ -29,6 +32,7 @@
       <div class="calendar-heading">
         <h2 id="calendar-date">Loading campaign calendar…</h2>
         <p id="calendar-progress"></p>
+        <p id="lunar-phase" hidden></p>
         <p id="calendar-alert" class="calendar-alert" role="status" aria-live="polite" hidden></p>
         <p id="full-moon-alert" class="calendar-alert full-moon" role="status" aria-live="polite" hidden></p>
       </div>

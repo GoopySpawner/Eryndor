@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <title>Eryndor Map Editor</title>
+  <link rel="stylesheet" href="/map-admin.css">
+  <script src="/map-admin.js" defer></script>
+</head>
+<body data-map-mode="edit">
+  <main class="map-shell">
+    <header class="map-header">
+      <p class="eyebrow">Dungeon Master tools</p>
+      <h1>Eryndor</h1>
+      <p class="subtitle">World map editor</p>
+      <p class="page-link"><a href="/map">Open the player map</a> · <a href="/">Encounter tools</a></p>
+    </header>
+    <p id="map-message" class="map-message" role="status" aria-live="polite"></p>
+    <section class="map-layout">
+      <div class="map-panel">
+        <div class="map-toolbar">
+          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button id="reset-view" type="button">Fit map</button>
+          <span>Paint by dragging in Paint biome mode · Drag to pan · Scroll or pinch to zoom · On phones, swipe vertically to scroll the page</span>
+        </div>
+        <div class="map-viewport">
+          <canvas id="world-map" tabindex="0" aria-label="Interactive hex map editor. Choose a tool and click a hex to edit it.">
+            Your browser does not support the interactive map canvas.
+          </canvas>
+        </div>
+      </div>
+      <aside class="map-sidebar panel">
+        <section aria-labelledby="legend-title">
+          <h2 id="legend-title">Biomes</h2>
+          <ul id="biome-legend" class="biome-legend"></ul>
+        </section>
+        <section aria-labelledby="places-title">
+          <h2 id="places-title">Places of Interest</h2>
+          <ul id="place-legend" class="place-legend"></ul>
+        </section>
+        <section class="hex-details" aria-labelledby="hex-title">
+          <h2 id="hex-title">Selected Hex</h2>
+          <p id="hex-description">Select a hex to inspect or edit it.</p>
+          <div class="hex-notes" id="hex-notes" hidden>
+            <p id="hex-note-text" class="hex-note-text" hidden></p>
+            <button id="add-hex-note" type="button">Add notes</button>
+            <form id="hex-note-form" hidden>
+              <label for="hex-note-input">Hex note (up to 500 characters)</label>
+              <textarea id="hex-note-input" maxlength="500" rows="4"></textarea>
+              <div class="hex-note-actions">
+                <button type="submit">Save note</button>
+                <button id="cancel-hex-note" type="button">Cancel</button>
+                <button id="delete-hex-note" type="button" hidden>Delete note</button>
+              </div>
+            </form>
+          </div>
+        </section>
+        <section class="editor-tools" aria-labelledby="tools-title">
+          <h2 id="tools-title">Map Editor</h2>
+          <label for="edit-action">Tool</label>
+          <select id="edit-action" aria-describedby="edit-help">
+            <option value="inspect">Inspect hexes</option>
+            <option value="biome">Paint biome</option>
+            <option value="place">Place a token</option>
+          </select>
+          <p id="edit-help" class="editor-help">Inspect mode only shows the current biome. Choose Paint biome to select a brush and paint by clicking or dragging.</p>
+          <label for="biome-select">Biome to paint</label>
+          <select id="biome-select"></select>
+          <div id="brush-controls" class="brush-controls" hidden>
+            <label for="brush-radius">Brush size</label>
+            <select id="brush-radius">
+              <option value="0">1 hex</option>
+              <option value="1">7 hexes</option>
+              <option value="2">19 hexes</option>
+              <option value="3">37 hexes</option>
+              <option value="5">91 hexes</option>
+              <option value="8">217 hexes</option>
+            </select>
+            <p class="editor-help">Click or drag across the map to paint. Dragged strokes fill the gaps between hexes.</p>
+          </div>
+          <form id="place-form" hidden>
+            <label for="place-type">Token type</label>
+            <select id="place-type"></select>
+            <label id="place-name-label" for="place-name">Place name</label>
+            <input id="place-name" maxlength="80" required>
+            <button class="primary" type="submit">Add to selected hex</button>
+          </form>
+        </section>
+      </aside>
+    </section>
+    <footer>The starting colors are approximate. Use Inspect hexes to browse safely; choose Paint biome before changing a hex, or Place a token to add a location.</footer>
+  </main>
+</body>
+</html>

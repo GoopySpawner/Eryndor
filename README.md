@@ -47,8 +47,35 @@ and matching Cramped storage facilities add 5. Excess is removed at Upkeep
 rather than blocking production during the current turn. Gold has no facility
 storage cap.
 
+The party page also links to a 250-by-142 campaign hex map at `/map`. It uses
+the supplied campaign-map photo as a background, with approximate biome colors
+and tokens for Cities, Bastions, and Hallowsteads. The party and DM maps open
+centered and zoomed on the Current Location marker, drawing only visible hexes
+for better performance on phones. Map labels are limited to Viremont and Current Location.
+Players can pan and zoom the map and inspect hexes. Open
+`/map-admin` with the DM password to paint biomes
+with a selectable-size brush; click or drag to cover an area, and each stroke is
+saved as one change. On phones, swipe vertically to scroll the page and use a
+two-finger pinch to zoom and pan the map. The editor can add or remove City, Bastion, Hallowstead,
+and named Place of Interest tokens, and set one Current Location marker. Party
+members can move that marker and add named Place of Interest tokens from `/map`.
+Both the party and DM can add a short note to a hex; notes appear in the Selected
+Hex panel only while that hex is selected, and can be edited or deleted there.
+Map data is saved in `Saved-Data/hex_map.json`. The initial biome assignments
+are approximate and intended to be tailored in the editor.
+
 Combat-table results are always rolled randomly and are not tracked or exhausted
 by encounter history.
+The Choice and Environment Outcomes tables each contain 100 post-apocalyptic
+wilds encounters. Environment outcomes emphasize hazardous travel, exposure,
+ruined infrastructure, and salvage. Choice entries focus on the traces and
+aftermath people leave behind, then offer a choice to intervene at personal
+risk or continue down the trail. Some apparent opportunities or distress signs
+are traps. Living Drafters and Binders are rare, and Drafters depend on
+Nightwine to survive in the wilds.
+Use **Reset Encounter History** to reset all tables, or choose **Reset Selected
+Table** to clear one table's history and restore it to the encounter pool.
+Combat cannot be reset because its results are not tracked.
 Every combat rolls one initiative d20 per enemy and lists the results from
 highest to lowest, showing both the color and creature type. The first twelve
 enemies use red, orange, yellow, green, blue, purple, pink, black, grey, brown,
@@ -78,7 +105,10 @@ The calendar highlights **Resolve Bastion Turn** on Mondays at segment 2/4 and
 prompts before generating an encounter then. If a long rest passes a Monday's
 Bastion Turn, it asks whether the turn has been resolved. Every 29 campaign
 days from January 1, Year 1, it displays **FULL MOON DID THEY PREPARE?** at
-segment 1/4 and marks that date in the calendar.
+segment 1/4 and marks that date in the calendar. During the Late Night segment,
+the calendar also shows an estimated eight-phase lunar cycle and illumination
+percentage. The light-level note appears on the full moon and the two campaign
+days before and after it; lunar dates are approximate, based on the 29-day cycle.
 Resetting encounter history does not reset the calendar. The existing Tkinter
 app can still be started with `py main.py`. Calendar rules and persistence are
 implemented in the root-level `calendar.py`.

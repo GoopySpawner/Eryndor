@@ -16,6 +16,15 @@ CALENDAR_SPEC.loader.exec_module(campaign_calendar)
 
 
 class CampaignCalendarTests(unittest.TestCase):
+    def calendar_day_for_cycle_day(self, cycle_day):
+        return {
+            "year": 1,
+            "month": cycle_day // 28 + 1,
+            "day": cycle_day % 28 + 1,
+            "segment": 1,
+            "total_encounters": 0,
+        }
+
     def test_full_moons_recur_every_29_days_across_months(self):
         full_moons = (
             (1, 1, 1),
@@ -62,6 +71,50 @@ class CampaignCalendarTests(unittest.TestCase):
         })
 
         self.assertFalse(display["isFullMoon"])
+
+    def test_lunar_phases_cover_eight_segments_of_the_cycle(self):
+        phases = []
+        for day_offset in range(campaign_calendar.FULL_MOON_CYCLE_DAYS):
+            display = campaign_calendar.get_calendar_display(
+                self.calendar_day_for_cycle_day(day_offset),
+            )
+            phases.append(display["moonPhase"])
+
+        self.assertEqual(set(phases), set(campaign_calendar.LUNAR_PHASES))
+        for day_offset, phase in (
+            (0, "Full Moon"),
+            (7, "Third Quarter"),
+            (14, "New Moon"),
+            (22, "First Quarter"),
+        ):
+            with self.subTest(day_offset=day_offset):
+                self.assertEqual(phases[day_offset], phase)
+                self.assertNotEqual(phases[day_offset - 1], phase)
+                self.assertNotEqual(
+                    phases[(day_offset + 1) % len(phases)],
+                    phase,
+                )
+
+    def test_moonlight_notice_covers_two_days_on_either_side_of_full_moon(self):
+        for day_offset in range(-3, 4):
+            display = campaign_calendar.get_calendar_display(
+                self.calendar_day_for_cycle_day(
+                    day_offset % campaign_calendar.FULL_MOON_CYCLE_DAYS,
+                ),
+            )
+            with self.subTest(day_offset=day_offset):
+                self.assertEqual(display["isMoonDim"], abs(day_offset) <= 2)
+
+    def test_lunar_illumination_is_estimated_across_the_cycle(self):
+        full_moon = campaign_calendar.get_calendar_display(
+            self.calendar_day_for_cycle_day(0),
+        )
+        new_moon = campaign_calendar.get_calendar_display(
+            self.calendar_day_for_cycle_day(14),
+        )
+
+        self.assertEqual(full_moon["moonIllumination"], 100)
+        self.assertLessEqual(new_moon["moonIllumination"], 1)
 
 
 if __name__ == "__main__":
